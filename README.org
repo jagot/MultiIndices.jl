@@ -29,37 +29,140 @@
   #+RESULTS:
   : nothing
 
-  A simple Cartesian 1d grid can be setup like this:
-  #+BEGIN_SRC julia :exports both :results verbatim
-    𝕽 = Cartesian(1000)
-  #+END_SRC
+** Cartesian grids
+   A simple Cartesian 1d grid can be setup like this:
+   #+BEGIN_SRC julia :exports both :results verbatim
+     𝕽 = Cartesian(1000)
+   #+END_SRC
 
-  #+RESULTS:
-  : MultiIndices.Cartesian{1,(1,)}((1000,))
+   #+RESULTS:
+   : MultiIndices.Cartesian{1,(1,)}((1000,))
 
-  while a Cartesian 2d grid can be setup like this:
-  #+BEGIN_SRC julia :exports both :results verbatim
-    𝖃𝖄 = CartesianXY(100,500)
-  #+END_SRC
+   while a Cartesian 2d grid can be setup like this:
+   #+BEGIN_SRC julia :exports both :results verbatim
+     𝖃𝖄 = CartesianXY(100,500)
+   #+END_SRC
 
-  #+RESULTS:
-  : MultiIndices.Cartesian{2,(1, 2)}((100, 500))
+   #+RESULTS:
+   : MultiIndices.Cartesian{2,(1, 2)}((100, 500))
 
-  =CartesianXY= indicates that X is the "fast dimension", i.e. the
-  dimension whose elements are found next to each other in vector,
-  while subsequent elements in Y are strided.
+   =CartesianXY= indicates that X is the "fast dimension", i.e. the
+   dimension whose elements are found next to each other in vector,
+   while subsequent elements in Y are strided.
 
-  As a more complicated example, the argon atom consists of 18
-  electron, each of which has a position along the radial direction r,
-  an angular momentum ℓ, a magnetic quantum number m, and a spin. Its
-  tensor product space can be created thus:
-  #+BEGIN_SRC julia
-    𝖄 = SphericalHarmonics(10)
-    𝔖 = Spin{1//2}()
-    𝕽 = Cartesian(1000)
+   We see then that the second element along the X dimension has
+   linear index 2:
+   #+BEGIN_SRC julia :exports both
+     𝖃𝖄[2,1]
+   #+END_SRC
 
-    # Argon has 18 electrons
-    Ar_space = 18 ⊗ ((𝔖 ⊗ 𝖄) ⊗ 𝕽)
-  #+END_SRC
-  where we have truncated the expansion in ℓ to 10 values and in r to
-  1000 positions.
+   #+RESULTS:
+   : 2
+   while the second element along the Y dimension has the linear index
+   101:
+   #+BEGIN_SRC julia :exports both
+     𝖃𝖄[1,2]
+   #+END_SRC
+
+   #+RESULTS:
+   : 101
+
+
+** Tensor product spaces
+   As a more complicated example, the argon atom consists of 18
+   electron, each of which has a position along the radial direction r,
+   an angular momentum ℓ, a magnetic quantum number m, and a spin. Its
+   tensor product space can be created the following way:
+   1) We first define the orbital angular momentum basis, which can be
+      built up from a direct sum of subspaces [[https://en.wikipedia.org/wiki/Spherical_harmonics#Rotations][which are invariant
+      under rotation]]. The first subspace, with ℓ=0 (called s in
+      [[https://en.wikipedia.org/wiki/Spectroscopic_notation][spectroscopic notation]]) has one element, m=0; the second
+      subspace, ℓ=1 (p) has 2ℓ+1=3 elements, m=-1,0,1; and so on.  If
+      we want to include all ℓ∈[0,10], we can form the space thus:
+      #+BEGIN_SRC julia :exports both :results verbatim
+        𝕷 = RotationSpace(0)
+        for ℓ = 1:10
+            𝕷 = 𝕷 ⊕ RotationSpace(ℓ)
+        end
+        𝕷
+      #+END_SRC
+
+      #+RESULTS:
+      : MultiIndices.SumSpace{MultiIndices.RotationSpace}(MultiIndices.RotationSpace[Rot{ℓ = s}, Rot{ℓ = p}, Rot{ℓ = d}, Rot{ℓ = f}, Rot{ℓ = g}, Rot{ℓ = h}, Rot{ℓ = i}, Rot{ℓ = k}, Rot{ℓ = l}, Rot{ℓ = m}, Rot{ℓ = n}])
+
+      We can query the size of this space:
+      #+BEGIN_SRC julia :exports both
+        size(𝕷)
+      #+END_SRC
+
+      #+RESULTS:
+      : 121
+      i.e., there are 121 /partial waves/. We can also find the linear
+      index of a partial wave, given its values of ℓ and m (no bounds
+      checking, so make sure you obey m ≤ |ℓ|):
+      #+BEGIN_SRC julia :exports both :results verbatim
+      𝕷[ℓm(1,1)...]
+      #+END_SRC
+
+      #+RESULTS:
+      : 3 (wrong at the moment)
+      Spectroscopic notation is also supported:
+      #+BEGIN_SRC julia :exports both :results verbatim
+      𝕷[ℓm('d',1)...]
+      #+END_SRC
+
+      #+RESULTS:
+      : 4 (wrong at the moment)
+
+   2) We then define the electron spin momentum space and the combined
+      angular momentum space:
+      #+BEGIN_SRC julia :exports both :results verbatim
+        𝔖 = Spin{1//2}()
+        𝕵 = 𝕷 ⊗ 𝔖
+      #+END_SRC
+
+      #+RESULTS:
+      : MultiIndices.ProductSpace{2,(1, 2)}(MultiIndices.SumSpace{MultiIndices.RotationSpace}(MultiIndices.RotationSpace[Rot{ℓ = s}, Rot{ℓ = p}, Rot{ℓ = d}, Rot{ℓ = f}, Rot{ℓ = g}, Rot{ℓ = h}, Rot{ℓ = i}, Rot{ℓ = k}, Rot{ℓ = l}, Rot{ℓ = m}, Rot{ℓ = n}]), MultiIndices.Spin{1//2}())
+
+   3) Next, we define a 1d coordinate system for the radial dimension
+      and the total product space for one electron
+      #+BEGIN_SRC julia :exports both :results verbatim
+        𝕽 = Cartesian(100)
+        𝖂 = 𝕽 ⊗ 𝕵
+      #+END_SRC
+
+      #+RESULTS:
+      : MultiIndices.ProductSpace{3,(1, 2, 3)}(MultiIndices.Cartesian{1,(1,)}((100,)), MultiIndices.ProductSpace{2,(1, 2)}(MultiIndices.SumSpace{MultiIndices.RotationSpace}(MultiIndices.RotationSpace[Rot{ℓ = s}, Rot{ℓ = p}, Rot{ℓ = d}, Rot{ℓ = f}, Rot{ℓ = g}, Rot{ℓ = h}, Rot{ℓ = i}, Rot{ℓ = k}, Rot{ℓ = l}, Rot{ℓ = m}, Rot{ℓ = n}]), MultiIndices.Spin{1//2}()))
+      the size of which is
+      #+BEGIN_SRC julia :exports both :results verbatim
+        size(𝖂)
+      #+END_SRC
+
+      #+RESULTS:
+      : (100, 121, 2)
+      as expected.
+
+   4) With the product space for one electron ready, we can easily
+      replicate it 18 times:
+      #+BEGIN_SRC julia :exports both :results verbatim
+        𝕱 = 𝖂 ⊗ 18
+      #+END_SRC
+
+      #+RESULTS:
+      : MultiIndices.CopySpace{4,(1, 2, 3, 4)}(MultiIndices.ProductSpace{3,(1, 2, 3)}(MultiIndices.Cartesian{1,(1,)}((100,)), MultiIndices.ProductSpace{2,(1, 2)}(MultiIndices.SumSpace{MultiIndices.RotationSpace}(MultiIndices.RotationSpace[Rot{ℓ = s}, Rot{ℓ = p}, Rot{ℓ = d}, Rot{ℓ = f}, Rot{ℓ = g}, Rot{ℓ = h}, Rot{ℓ = i}, Rot{ℓ = k}, Rot{ℓ = l}, Rot{ℓ = m}, Rot{ℓ = n}]), MultiIndices.Spin{1//2}())), 18)
+      
+      #+BEGIN_SRC julia :exports both :results verbatim
+        size(𝕱)
+      #+END_SRC
+
+      #+RESULTS:
+      : (100, 121, 2, 18)
+      We now try to find the linear index of the second element along
+      each dimension:
+      #+BEGIN_SRC julia :exports both
+        [𝕱[2,1,1,1] 𝕱[1,2,1,1] 𝕱[1,1,2,1] 𝕱[1,1,1,2]]
+      #+END_SRC
+
+      #+RESULTS:
+      | 2 | 101 | 12101 | 24201 |
+      which is correct.
