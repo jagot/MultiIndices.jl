@@ -6,3 +6,60 @@
 [[https://coveralls.io/github/jagot/MultiIndices.jl?branch=master][https://coveralls.io/repos/github/jagot/MultiIndices.jl/badge.svg?branch=master]]
 [[http://codecov.io/gh/jagot/MultiIndices.jl][http://codecov.io/gh/jagot/MultiIndices.jl/branch/master/graph/badge.svg]]
 
+#+PROPERTY: header-args:julia :session *julia-MultiIndices*
+
+* Introduction
+  The idea is provide means for creating tensor product spaces that
+  can be efficiently indexed into; a 3d problem, maybe described in
+  Cartesian coordinates or spherical coordinates, etc,, all of which
+  maybe discretized or represented using basis functions,
+  etc. Depending on the choice of coordinate system, but also on the
+  storage pattern of the different degrees of freedom, the sparsity
+  structure of various operators will be different. MultiIndex.jl's
+  purpose is to provide an efficient means of setting up these tensor
+  product spaces and to use "logical" indices, which are mapped to
+  linear indices in the underlying vector in the product space.
+
+
+* Usage pattern
+  #+BEGIN_SRC julia :exports code
+    using MultiIndices
+  #+END_SRC
+
+  #+RESULTS:
+  : nothing
+
+  A simple Cartesian 1d grid can be setup like this:
+  #+BEGIN_SRC julia :exports both :results verbatim
+    𝕽 = Cartesian(1000)
+  #+END_SRC
+
+  #+RESULTS:
+  : MultiIndices.Cartesian{1,(1,)}((1000,))
+
+  while a Cartesian 2d grid can be setup like this:
+  #+BEGIN_SRC julia :exports both :results verbatim
+    𝖃𝖄 = CartesianXY(100,500)
+  #+END_SRC
+
+  #+RESULTS:
+  : MultiIndices.Cartesian{2,(1, 2)}((100, 500))
+
+  =CartesianXY= indicates that X is the "fast dimension", i.e. the
+  dimension whose elements are found next to each other in vector,
+  while subsequent elements in Y are strided.
+
+  As a more complicated example, the argon atom consists of 18
+  electron, each of which has a position along the radial direction r,
+  an angular momentum ℓ, a magnetic quantum number m, and a spin. Its
+  tensor product space can be created thus:
+  #+BEGIN_SRC julia
+    𝖄 = SphericalHarmonics(10)
+    𝔖 = Spin{1//2}()
+    𝕽 = Cartesian(1000)
+
+    # Argon has 18 electrons
+    Ar_space = 18 ⊗ ((𝔖 ⊗ 𝖄) ⊗ 𝕽)
+  #+END_SRC
+  where we have truncated the expansion in ℓ to 10 values and in r to
+  1000 positions.
