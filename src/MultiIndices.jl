@@ -6,12 +6,10 @@ import Base: sub2ind, size, show, getindex
 
 abstract type Space{N,O} end
 
-# size(mi::Space, i::Integer) = size(mi)[i]
+dims(mi::Space{N,O}) where {N,O} = N
 
-dims(mi::Space{N,O}) where N where O = N
-
-order(mi::Space{N,O}) where N where O = O
-function order(𝔄::Space{N𝔄,O𝔄},𝔅::Space{N𝔅,O𝔅}) where N𝔄 where O𝔄 where N𝔅 where O𝔅
+order(mi::Space{N,O}) where {N,O} = O
+function order(𝔄::Space{N𝔄,O𝔄},𝔅::Space{N𝔅,O𝔅}) where {N𝔄,O𝔄,N𝔅,O𝔅}
     mO𝔄 = maximum(O𝔄)
     (O𝔄..., (o+mO𝔄 for o in O𝔅)...)
 end
@@ -27,12 +25,12 @@ end
 
 # ** Sum space
 
-struct SumSpace{S<:Space{N,O} where N where O} <: Space{1,1}
+struct SumSpace{S<:Space{N,O} where {N,O}} <: Space{1,(1,)}
     𝔖::Vector{S}
 end
 
-dims(mi::SumSpace{S}) where S <: Space{N,O} where N where O = 1
-order(mi::SumSpace{S}) where S <: Space{N,O} where N where O = 1
+dims(mi::SumSpace{S}) where S <: Space{N,O} where {N,O} = 1
+order(mi::SumSpace{S}) where S <: Space{N,O} where {N,O} = (1,)
 
 function size(mi::SumSpace)
     sizes = map(mi.𝔖) do s
@@ -41,7 +39,7 @@ function size(mi::SumSpace)
     sum(sizes)
 end
 
-getindex(mi::MultiIndices.SumSpace, i::Integer, args...) = mi.𝔖[i][args...]
+getindex(mi::MultiIndices.SumSpace, i::Integer, args...) = mi.𝔖[i][args...] # This does not work as intended, returns inner dimension index only
 getindex(mi::MultiIndices.SumSpace, i::Integer) = mi.𝔖[i]
 
 """
@@ -62,7 +60,7 @@ Construct the sum space of which `𝔖` and `𝔄` are terms.
 
 # ** Product space
 
-struct ProductSpace{N,O} <: Space{2,(1,2)} where N where O
+struct ProductSpace{N,O} <: Space{2,(1,2)} where {N,O}
     𝔄::Space
     𝔅::Space
 end
@@ -72,8 +70,8 @@ function ProductSpace(𝔄::Space,𝔅::Space)
     ProductSpace{N,O}(𝔄, 𝔅)
 end
 
-dims(mi::ProductSpace{N,O}) where N where O = N
-order(mi::ProductSpace{N,O}) where N where O = O
+dims(mi::ProductSpace{N,O}) where {N,O} = N
+order(mi::ProductSpace{N,O}) where {N,O} = O
 
 function size(mi::ProductSpace)
     (size(mi.𝔄)...,size(mi.𝔅)...)
@@ -87,7 +85,9 @@ be the "fast dimension".
 """
 ⊗(𝔄::Space, 𝔅::Space) = ProductSpace(𝔄, 𝔅)
 
-struct CopySpace{N,O} <: Space{2,(1,2)} where N where O
+# ** Copy space
+
+struct CopySpace{N,O} <: Space{2,(1,2)} where {N,O}
     𝔖::Space
     n::Integer
 end
@@ -97,11 +97,9 @@ function CopySpace(𝔖::Space, n::Integer)
     O = (O..., length(O)+1)
     CopySpace{N,O}(𝔖, n)
 end
-dims(mi::CopySpace{N,O}) where N where O = N
-order(mi::CopySpace{N,O}) where N where O = O
+dims(mi::CopySpace{N,O}) where {N,O} = N
+order(mi::CopySpace{N,O}) where {N,O} = O
 size(mi::CopySpace) = (size(mi.𝔖)..., mi.n)
-
-# ** Copy space
 
 """
     𝔖 ⊗ n
@@ -122,7 +120,7 @@ end
 size(mi::Cartesian) = mi.dims
 
 Cartesian(i::Integer) = Cartesian{1,(1,)}((i,))
-Cartesian{N,O}(args...) where N where O = Cartesian{N,O}(args)
+Cartesian{N,O}(args...) where {N,O} = Cartesian{N,O}(args)
 
 CartesianXY = Cartesian{2, (1,2)}
 CartesianYX = Cartesian{2, (2,1)}

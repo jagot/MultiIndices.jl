@@ -20,7 +20,6 @@
   product spaces and to use "logical" indices, which are mapped to
   linear indices in the underlying vector in the product space.
 
-
 * Usage pattern
   #+BEGIN_SRC julia :exports code
     using MultiIndices
@@ -66,7 +65,6 @@
 
    #+RESULTS:
    : 101
-
 
 ** Tensor product spaces
    As a more complicated example, the argon atom consists of 18
@@ -150,7 +148,7 @@
 
       #+RESULTS:
       : MultiIndices.CopySpace{4,(1, 2, 3, 4)}(MultiIndices.ProductSpace{3,(1, 2, 3)}(MultiIndices.Cartesian{1,(1,)}((100,)), MultiIndices.ProductSpace{2,(1, 2)}(MultiIndices.SumSpace{MultiIndices.RotationSpace}(MultiIndices.RotationSpace[Rot{ℓ = s}, Rot{ℓ = p}, Rot{ℓ = d}, Rot{ℓ = f}, Rot{ℓ = g}, Rot{ℓ = h}, Rot{ℓ = i}, Rot{ℓ = k}, Rot{ℓ = l}, Rot{ℓ = m}, Rot{ℓ = n}]), MultiIndices.Spin{1//2}())), 18)
-      
+
       #+BEGIN_SRC julia :exports both :results verbatim
         size(𝕱)
       #+END_SRC
@@ -166,3 +164,7 @@
       #+RESULTS:
       | 2 | 101 | 12101 | 24201 |
       which is correct.
+
+* Wish list
+  - Interval indexing, e.g. =𝕱[:,1,2,3]=
+  - Efficient iteration, via [[https://docs.julialang.org/en/latest/devdocs/cartesian/][Base.Cartesian]]
